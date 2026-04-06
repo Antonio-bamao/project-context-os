@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Context OS"
+  short_description: "Context-first engineering operating system skill"
+  default_prompt: "Use $project-context-os to initialize and maintain a project's .context system before implementation."
