@@ -1,51 +1,80 @@
 # Project Context OS
 
-> Context-first engineering skill that forces project-level planning, work logs, bug retrospectives, and decision records before implementation.
+> Context-first engineering skill that requires a passing `VISION + DESIGN` before implementation.
 
-Project Context OS is an opinionated engineering operating system for agent-assisted software delivery. It makes project memory mandatory by requiring a root-level `.context/` command center before real implementation begins.
+Project Context OS is an opinionated engineering operating system for agent-assisted software delivery. It makes project memory, design boundaries, structured logs, bug retrospectives, ADRs, and validation gates mandatory before real implementation begins.
 
-Instead of trusting memory, scattered chat history, or half-kept TODOs, this repository gives you a repeatable system for:
+The upgraded rule is:
 
-- global planning and milestone control
-- session-to-session execution continuity
-- structured work logging after meaningful steps
-- bug and engineering issue retrospectives with root causes
-- decision records that preserve architectural intent
-- risk tracking that survives implementation pressure
+**no implementation without a passing VISION + DESIGN.**
 
 ## Why It Exists
 
-Most engineering drift starts long before the code looks wrong.
+Most engineering drift starts before code looks wrong.
 
-Plans become vague.
-Status becomes implicit.
-Bug lessons disappear.
-Decisions lose their background.
-New sessions resume from memory instead of a living source of truth.
+Teams and agents skip the user reality, blur scope, invent abstractions, chase popular technology, forget why decisions were made, and resume later from memory instead of a living source of truth.
 
-Project Context OS turns that failure mode into a rule violation:
+Project Context OS turns those failure modes into rule violations:
 
-**no implementation without project context.**
+- `vision.md` explains what problem matters, for whom, why, and what is explicitly out of scope.
+- `design.md` defines domain boundaries, change axes, interface contracts, technology tradeoffs, NFRs, Walking Skeleton, and de-risk order.
+- `validate_context.py` blocks implementation when required design markers or status fields are missing.
+- Rotating logs keep long-lived projects readable without losing history.
 
 ## What You Get
 
 - A reusable skill at `skills/project-context-os/`
 - Scripted initialization of `.context/`
-- Structured append-only work logs
-- Structured bug/issue retrospectives
-- Context validation before claiming things are “under control”
+- Design-gated validation before implementation
+- Structured append-only work logs with automatic sharding
+- Structured bug/issue retrospectives with root causes
+- Structured ADR recording with mandatory tradeoffs
+- Risk tracking with de-risk order
+- A session bootstrap prompt for consistent handoffs
+- A generated `INDEX.md` that points new sessions at the active log shards
 - A schema and operating model that codify disciplined engineering behavior
-- Example `.context/` output for a sample project
 
 ## Core Workflow
 
 1. Initialize `.context/` before coding, scaffolding, or refactoring.
-2. Read `master-plan.md`, `current-status.md`, and `task-breakdown.md` before each session.
-3. Append to `work-log.md` after every meaningful step.
-4. Record every engineering problem in `bug-log.md` with root cause and prevention.
-5. Update `decisions.md` when high-impact choices are made.
-6. Refresh `current-status.md` before ending the session.
-7. Run validation before declaring the project context healthy.
+2. Fill `vision.md` and `design.md` until validation passes.
+3. Start each session from `INDEX.md`, `master-plan.md`, `current-status.md`, the active `work-log` shard, `design.md`, and `operating-model.md`.
+4. Produce an implementation plan.
+5. Work only on the current task card.
+6. Append to the active `work-log` shard after every meaningful step.
+7. Record every engineering problem in the active `bug-log` shard with root cause and prevention.
+8. Record high-impact choices as ADRs with explicit tradeoffs.
+9. Refresh `current-status.md`, including `当前活跃日志分片`.
+10. Run validation before declaring context or implementation health.
+
+## Log Rotation
+
+`work-log.md`, `bug-log.md`, and `decisions.md` rotate automatically after `MAX_LOG_LINES = 1500`.
+
+The base file is shard 1:
+
+- `work-log.md`
+- `bug-log.md`
+- `decisions.md`
+
+Later shards use forward numbering:
+
+- `work-log-2.md`
+- `work-log-3.md`
+
+New entries always go to the highest-numbered shard. Rotation happens only between records, so a single work log, bug record, or ADR is never split.
+
+`INDEX.md` is regenerated after initialization and after every append. It lists all shards and the latest active shard for `work-log`, `bug-log`, and `decisions`.
+
+## CLI Examples
+
+```powershell
+python skills/project-context-os/scripts/init_context.py --project-root . --project-name "Demo Project"
+python skills/project-context-os/scripts/append_work_log.py --project-root . --goal "Walking Skeleton" --actions "Implemented first slice" --result "CLI path works" --verification "python -m unittest" --next-step "Fill current status"
+python skills/project-context-os/scripts/record_bug.py --project-root . --title "Validation drift" --symptom "Context passed without design" --trigger "Old schema" --impact "Implementation could start early" --root-cause "No design gate" --resolution "Add required design markers" --prevention "Regression tests" --status "resolved"
+python skills/project-context-os/scripts/record_decision.py --project-root . --number "ADR-0001" --title "Use stdlib templates" --status accepted --date "2026-06-11" --context "Templates include JSON braces" --decision "Use string.Template.safe_substitute" --tradeoffs "Gains brace safety; gives up format mini-language" --consequences "Templates use $project_name" --supersedes "无"
+python skills/project-context-os/scripts/validate_context.py --project-root .
+```
 
 ## Repository Layout
 
@@ -53,16 +82,16 @@ Project Context OS turns that failure mode into a rule violation:
 project-context-os/
 ├── README.md
 ├── LICENSE
-├── examples/
-│   └── sample-project/
-│       └── .context/
+├── tests/
 └── skills/
     └── project-context-os/
         ├── SKILL.md
         ├── agents/openai.yaml
         ├── scripts/
         ├── references/
-        └── assets/templates/
+        └── assets/
+            ├── session-bootstrap.md
+            └── templates/
 ```
 
 ## Installation
@@ -76,11 +105,13 @@ Then invoke the skill when a project enters implementation and does not yet have
 
 ## Design Principles
 
-- **Context before code**: project memory is a prerequisite, not an afterthought.
-- **Structured over narrative**: logs and retrospectives must be queryable and consistent.
-- **Root cause over symptom**: bug records are incomplete without causes and prevention.
-- **Session continuity over heroics**: every session should start from explicit state, not recall.
-- **Decision traceability over folklore**: architecture should remain explainable after the fact.
+- **Vision before design**: understand user reality and root cause before shaping the system.
+- **Design before code**: domain model, contracts, and tradeoffs are prerequisites.
+- **KISS by default**: no abstraction layers, caches, dependencies, or performance work unless the design requires them.
+- **YAGNI with a paper trail**: reserve extension points only for changes declared as certain in `design.md`.
+- **Structured over narrative**: logs, retrospectives, and ADRs must be queryable and consistent.
+- **Decision traceability over folklore**: every high-impact choice records tradeoffs and consequences.
+- **Verification before claims**: run validation before saying the context is healthy.
 
 ## Chinese / 中文说明
 
@@ -88,14 +119,20 @@ Then invoke the skill when a project enters implementation and does not yet have
 
 `Project Context OS` 是一套面向真实工程实施阶段的上下文操作系统 Skill。
 
-它不是普通的文档模板，也不是“想起来再写”的项目笔记，而是一套强约束的软件工程方法：
+新版核心规则是：
+
+**没有通过门禁的 VISION + DESIGN，就不能进入实现。**
+
+它不是普通文档模板，也不是“想起来再写”的项目笔记，而是一套强约束的软件工程方法：
 
 - 开始动工前，必须先建立根目录 `.context/`
-- 每次实施前，先看计划、当前状态、任务拆解
+- 先写清 `vision.md`：愿景、目标用户、表层诉求与根因、成功定义、非目标、尖锐 FAQ
+- 再写清 `design.md`：领域模型、变化轴、接口契约、技术选型、NFR、Walking Skeleton、降险顺序
+- `validate_context.py` 不通过，就不能声称上下文健康
 - 每完成一个明确步骤，就记录工作日志
-- 每遇到一个工程异常，就记录现象、根因、解决方案和预防措施
-- 每做出高影响决策，就留下决策记录
-- 每次会话结束前，必须更新当前状态
+- 每遇到工程异常，就记录现象、根因、解决方案和预防措施
+- 每做出高影响决策，就追加结构化 ADR，并写明取舍和放弃了什么
+- 长日志自动分片，避免一个日志文件无限膨胀
 
 ## 适合谁
 
@@ -103,31 +140,23 @@ Then invoke the skill when a project enters implementation and does not yet have
 
 - 你经常跨会话、多阶段推进项目
 - 你不希望项目越做越靠记忆和聊天记录维持
+- 你希望 AI/代理在写代码前先想清楚边界
 - 你希望 Bug 教训能被沉淀，而不是修完就忘
-- 你希望 AI/代理参与开发时也遵守工程纪律，而不是“做一步想一步”
-
-## 它解决什么问题
-
-它解决的是软件工程里最常见但最容易被忽略的问题：
-
-- 项目有代码，没有可持续的上下文
-- 每次开新会话都要重新解释背景
-- 计划写过，但没有持续跟进
-- Bug 修掉了，但不知道为什么会发生
-- 架构决定做过了，后面的人却不知道原因
-
-`Project Context OS` 把这些问题前置为工程规则，而不是事后补救。
+- 你希望架构决定后面仍然能解释清楚
 
 ## 快速理解
 
 你可以把 `.context/` 理解成项目的“工程中枢”：
 
+- `vision.md`：为什么做、为谁做、成功怎么算、什么不做
+- `INDEX.md`：所有日志分片和最新活跃分片
+- `design.md`：边界、契约、选型、风险和第一条可运行切片
 - `master-plan.md`：总计划
-- `current-status.md`：当前状态
-- `task-breakdown.md`：任务拆解
-- `work-log.md`：工作日志
-- `bug-log.md`：Bug / 工程异常复盘
-- `decisions.md`：决策记录
+- `current-status.md`：当前状态和当前活跃日志分片
+- `task-breakdown.md`：任务卡和范围外事项
+- `work-log.md` / `work-log-2.md`：工作日志分片
+- `bug-log.md` / `bug-log-2.md`：Bug / 工程异常复盘分片
+- `decisions.md` / `decisions-2.md`：ADR 分片
 - `risk-register.md`：风险台账
 
 只要项目进入真实实施阶段，这套系统就必须先存在，然后持续维护。

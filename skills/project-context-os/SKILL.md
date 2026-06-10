@@ -1,67 +1,97 @@
 ---
 name: project-context-os
-description: Use when a project is entering real implementation work and needs a mandatory .context operating system before coding, scaffolding, refactoring, or feature delivery. Trigger when starting a new project, opening a repo with missing project context files, or when ongoing work lacks a master plan, current status, work log, bug retrospectives, or decision records.
+description: Use when a project is entering real implementation work and needs a mandatory .context operating system before coding, scaffolding, refactoring, or feature delivery. Trigger when starting a new project, opening a repo with missing project context files, or when ongoing work lacks vision, design, master plan, current status, work logs, bug retrospectives, ADRs, or risk tracking.
 ---
 
 # Project Context OS
 
 ## Overview
 
-Force context-first engineering. Before any real implementation work, create or repair a project-root `.context/` system, then keep plans, current status, work logs, bug retrospectives, decision records, and risk tracking continuously updated.
+Force context-first and design-gated engineering. Before any real implementation work, create or repair a project-root `.context/` system, then make `vision.md` and `design.md` pass validation before code changes continue.
 
-**Core principle:** no implementation without project memory.
+**Core principle:** no implementation without a passing VISION + DESIGN.
+
+## Required Session Bootstrap
+
+At the start of every implementation session, use `assets/session-bootstrap.md` as the standard opening instruction. In short:
+
+1. Read `.context/INDEX.md`, `.context/master-plan.md`, `.context/current-status.md`, the current active `work-log` shard named in the index/status, `.context/design.md`, and this skill's `references/operating-model.md`.
+2. Produce an implementation plan before touching code.
+3. Work only on the current task card.
+4. Append work-log and refresh current-status after meaningful work.
+5. Run `scripts/validate_context.py` before claiming the project context or implementation state is healthy.
 
 ## Workflow
 
-1. Before writing code, check whether `.context/README.md`, `.context/master-plan.md`, `.context/current-status.md`, and `.context/task-breakdown.md` exist.
+1. Before writing code, check whether all required `.context/` files exist, including `vision.md` and `design.md`.
 2. If `.context/` is missing or incomplete, run `scripts/init_context.py` from this skill against the project root before continuing.
-3. Read `.context/master-plan.md`, `.context/current-status.md`, and `.context/task-breakdown.md` before deciding the next implementation step.
-4. After each meaningful step, append to `.context/work-log.md` using `scripts/append_work_log.py`.
-5. When any engineering problem appears, record it in `.context/bug-log.md` using `scripts/record_bug.py`.
-6. When a high-impact technical or product choice is made, update `.context/decisions.md`.
-7. At the end of every work session, update `.context/current-status.md` with current state, next step, and blockers.
-8. Run `scripts/validate_context.py` before claiming the project context is healthy.
+3. Fill `vision.md` and `design.md` until `scripts/validate_context.py` passes the design gate.
+4. Read `INDEX.md`, `master-plan.md`, `current-status.md`, the current active `work-log` shard, `task-breakdown.md`, and `design.md` before choosing the next implementation step.
+5. Implement only the current task card. New ideas go to `vision.md` non-goals or `task-breakdown.md` range-out sections unless explicitly approved.
+6. After each meaningful step, append to the active `work-log` shard using `scripts/append_work_log.py`.
+7. When any engineering problem appears, record it in the active `bug-log` shard using `scripts/record_bug.py`.
+8. When a high-impact technical or product choice is made, append a structured ADR using `scripts/record_decision.py`.
+9. At the end of every work session, update `current-status.md`, including `当前活跃日志分片`.
+10. Run `scripts/validate_context.py` before claiming the project context is healthy.
 
 ## Required Files
 
 - `.context/README.md`: explain how the context system works in the project.
-- `.context/master-plan.md`: global plan, phases, milestones, acceptance criteria.
-- `.context/current-status.md`: latest state, active work, next step, blockers.
-- `.context/task-breakdown.md`: actionable decomposition and priorities.
-- `.context/work-log.md`: append-only structured execution log.
-- `.context/bug-log.md`: engineering errors, root causes, fixes, preventions.
-- `.context/decisions.md`: architecture and product decisions.
-- `.context/risk-register.md`: project risk tracking and mitigations.
+- `.context/INDEX.md`: generated shard index showing every log shard and the latest active shard for each rotating log.
+- `.context/vision.md`: product intent, user reality, root cause, measurable success, non-goals, hard FAQ.
+- `.context/master-plan.md`: global plan, phases, milestones, acceptance criteria, non-goals.
+- `.context/design.md`: problem, domain model, change axes, interface contracts, technical choices, NFRs, Walking Skeleton, de-risk order.
+- `.context/current-status.md`: latest state, active work, next step, blockers, and current active work-log shard.
+- `.context/task-breakdown.md`: task cards with goal, input, output, DoD, explicit non-goals, size, and range-out section.
+- `.context/work-log.md`: append-only structured execution log, rotating after 1500 lines.
+- `.context/bug-log.md`: engineering errors, root causes, fixes, preventions, rotating after 1500 lines.
+- `.context/decisions.md`: structured ADRs, rotating after 1500 lines.
+- `.context/risk-register.md`: project risk tracking, mitigations, and de-risk order.
 
 ## Scripts
 
 - `scripts/init_context.py`: initialize the `.context/` command center from templates.
-- `scripts/append_work_log.py`: append a structured work-log entry after each meaningful step.
+- `scripts/append_work_log.py`: append a structured work-log entry after each meaningful step. `--time` is optional and defaults to the current local minute.
 - `scripts/record_bug.py`: append a structured bug or engineering issue retrospective.
-- `scripts/validate_context.py`: verify required files exist and critical placeholders are removed.
+- `scripts/record_decision.py`: append a structured ADR. Requires tradeoffs; decisions without explicit costs are rejected.
+- `scripts/validate_context.py`: verify required files, current-status fields, design gate sections, placeholders, and active log shards.
+
+## Log Rotation
+
+`work-log.md`, `bug-log.md`, and `decisions.md` are rotating append-only logs. The base file is shard 1. When the active shard reaches `MAX_LOG_LINES = 1500`, the next append creates `work-log-2.md`, `bug-log-2.md`, or `decisions-2.md` with a navigation header and writes the whole new record there.
+
+Rotation happens only between records. Existing older shards are read-only history; new entries always go to the highest-numbered active shard.
+
+`INDEX.md` is regenerated by initialization and by all append scripts. It lists the latest active shard for `work-log`, `bug-log`, and `decisions`, plus every existing shard, so a new session can find the freshest context without scanning the directory.
 
 ## References
 
 - Read `references/operating-model.md` for the governing engineering model and required habits.
-- Read `references/context-schema.md` for required sections, field meanings, and update rules.
+- Read `references/context-schema.md` for required sections, field meanings, log rotation, and update rules.
+- Use `assets/session-bootstrap.md` as the standard session opening prompt.
 
 ## Common Mistakes
 
-- Starting implementation after creating `.context/`, but before filling `current-status`: not allowed. Update the status file immediately.
-- Writing free-form diary notes instead of structured logs: always use the required fields.
-- Recording only the symptom of a bug: always include root cause and prevention.
-- Letting `master-plan` drift away from `current-status`: keep them aligned whenever scope changes.
-- Treating `.context/` as optional documentation: it is the project operating system, not a nice-to-have.
+- Starting implementation after creating `.context/`, but before `vision.md` and `design.md` pass validation.
+- Adding abstractions, dependencies, caches, or performance work that `design.md` did not justify.
+- Letting new ideas silently expand scope instead of recording them under non-goals or range-out.
+- Changing an interface contract without first recording an ADR.
+- Writing free-form diary notes instead of structured logs.
+- Recording only the symptom of a bug instead of root cause and prevention.
+- Claiming things are healthy without running `scripts/validate_context.py`.
 
 ## Quick Reference
 
 - New project starting: run `scripts/init_context.py`.
+- Before implementation: fill `vision.md` and `design.md`, then run `scripts/validate_context.py`.
 - Meaningful step finished: run `scripts/append_work_log.py`.
 - Error or engineering pitfall hit: run `scripts/record_bug.py`.
+- High-impact decision made: run `scripts/record_decision.py`.
 - Before declaring the project context healthy: run `scripts/validate_context.py`.
 
 ## Resources
 
 - Templates live in `assets/templates/`.
+- Session bootstrap prompt lives at `assets/session-bootstrap.md`.
 - Policy and schema details live in `references/`.
 - All project mutations should happen through the scripts or through direct edits that keep the same structure.
